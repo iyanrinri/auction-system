@@ -1,0 +1,98 @@
+{
+  "users": [
+    {
+      "name": "auction_user",
+      "password": "auction_password",
+      "tags": "administrator"
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "auction_vhost"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "auction_user",
+      "vhost": "auction_vhost",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "queues": [
+    {
+      "name": "auction.notifications",
+      "vhost": "auction_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "auction.emails",
+      "vhost": "auction_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "auction.bids",
+      "vhost": "auction_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "auction.payments",
+      "vhost": "auction_vhost",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "auction.events",
+      "vhost": "auction_vhost",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "auction.events",
+      "vhost": "auction_vhost",
+      "destination": "auction.notifications",
+      "destination_type": "queue",
+      "routing_key": "auction.notification.*",
+      "arguments": {}
+    },
+    {
+      "source": "auction.events",
+      "vhost": "auction_vhost",
+      "destination": "auction.emails",
+      "destination_type": "queue",
+      "routing_key": "auction.email.*",
+      "arguments": {}
+    },
+    {
+      "source": "auction.events",
+      "vhost": "auction_vhost",
+      "destination": "auction.bids",
+      "destination_type": "queue",
+      "routing_key": "auction.bid.*",
+      "arguments": {}
+    },
+    {
+      "source": "auction.events",
+      "vhost": "auction_vhost",
+      "destination": "auction.payments",
+      "destination_type": "queue",
+      "routing_key": "auction.payment.*",
+      "arguments": {}
+    }
+  ]
+}
