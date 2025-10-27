@@ -20,7 +20,7 @@ A complete auction system built with NestJS, TypeORM, PostgreSQL, RabbitMQ, and 
 - **Database Migrations**: TypeORM migrations for schema management
 - **Testing**: Unit and e2e testing setup
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Framework**: NestJS 11.x
 - **Language**: TypeScript
@@ -32,15 +32,13 @@ A complete auction system built with NestJS, TypeORM, PostgreSQL, RabbitMQ, and 
 - **Containerization**: Docker & Docker Compose
 - **Package Manager**: pnpm
 
-## 📋 Prerequisites
+## Prerequisites
 
 - Node.js (v18+)
 - Docker & Docker Compose
 - pnpm (recommended) or npm
 
-## 🚀 Quick Start
-
-### Option 1: Docker (Recommended)
+## Quick Start
 
 ```bash
 # Clone repository
@@ -57,62 +55,92 @@ npm run docker:up:build
 open http://localhost:3000/api/docs
 ```
 
-### Option 2: Local Development
 
-```bash
-# Install dependencies
-pnpm install
+## Services
 
-# Setup environment
-cp .env.example .env
+| Service | Port (Default) | Environment Variable | Description |
+|---------|----------------|---------------------|-------------|
+| API | 3000 | `APP_HOST_PORT` | NestJS Application |
+| PostgreSQL | 5433 | `DB_HOST_PORT` | Primary Database |
+| RabbitMQ | 5673 | `RABBITMQ_HOST_PORT` | Message Broker |
+| RabbitMQ Management | 15673 | `RABBITMQ_MANAGEMENT_PORT` | RabbitMQ UI |
+| Redis | 6379 | `REDIS_HOST_PORT` | Cache Store |
+| pgAdmin | 5050 | `PGADMIN_HOST_PORT` | Database UI |
 
-# Start PostgreSQL and RabbitMQ (using Docker)
-docker-compose -f docker-compose.deps.yml up -d
+## Environment Configuration
 
-# Run migrations
-npm run migration:run
+### Port Configuration
 
-# Start development server
-npm run start:dev
+All ports can be customized via environment variables. The system uses default values if not specified:
+
+```env
+# Host Ports Configuration (external access)
+APP_HOST_PORT=3000
+DB_HOST_PORT=5433
+RABBITMQ_HOST_PORT=5673
+RABBITMQ_MANAGEMENT_PORT=15673
+REDIS_HOST_PORT=6379
+PGADMIN_HOST_PORT=5050
 ```
 
-## 📦 Services
+### Complete Environment Variables
 
-| Service | Port | Description |
-|---------|------|-------------|
-| API | 3000 | NestJS Application |
-| PostgreSQL | 5432 | Primary Database |
-| RabbitMQ | 5672/15672 | Message Broker |
-| Redis | 6379 | Cache Store |
-| pgAdmin | 5050 | Database UI |
+```env
+# Application
+NODE_ENV=development
+PORT=3000
 
-## 📚 API Documentation
+# Host Ports Configuration (external access)
+APP_HOST_PORT=3000
+DB_HOST_PORT=5433
+RABBITMQ_HOST_PORT=5673
+RABBITMQ_MANAGEMENT_PORT=15673
+REDIS_HOST_PORT=6379
+PGADMIN_HOST_PORT=5050
+
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5433
+DB_USERNAME=auction_user
+DB_PASSWORD=auction_password
+DB_NAME=auction_system
+
+# RabbitMQ Configuration
+RABBITMQ_USERNAME=auction_user
+RABBITMQ_PASSWORD=auction_password
+RABBITMQ_VHOST=auction_vhost
+RABBITMQ_URL=amqp://auction_user:auction_password@localhost:5673/auction_vhost
+
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-here
+JWT_EXPIRES_IN=7d
+
+# pgAdmin Configuration
+PGADMIN_EMAIL=admin@auction.com
+PGADMIN_PASSWORD=admin123
+```
+
+### Docker Environment
+
+The Docker Compose configuration automatically reads from your `.env` file with sensible defaults. You can:
+
+1. **Copy the example**: `cp .env.example .env`
+2. **Customize ports**: Modify port variables to avoid conflicts
+3. **Override credentials**: Change usernames and passwords as needed
+4. **Environment-specific configs**: Create `.env.development`, `.env.production` files
+
+## API Documentation
 
 Interactive API documentation is available at:
-- **Development**: http://localhost:3000/api/docs
+- **Development**: http://localhost:3000/api/docs (or custom port via `APP_HOST_PORT`)
 - **Swagger JSON**: http://localhost:3000/api/docs-json
 
-### Authentication
-
-The API uses JWT Bearer token authentication. Register a user and use the login endpoint to get a token.
-
-```bash
-# Register new user
-curl -X POST http://localhost:3000/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password123","firstName":"John","lastName":"Doe"}'
-
-# Login
-curl -X POST http://localhost:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password123"}'
-
-# Use token in subsequent requests
-curl -X GET http://localhost:3000/users/profile \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-## 🗄️ Database Schema
+## Database Schema
 
 ### Core Entities
 
@@ -143,35 +171,7 @@ Auctions (1:n) Payments
 Users (1:n) Payments
 ```
 
-## 🔧 Configuration
-
-### Environment Variables
-
-```env
-# Application
-NODE_ENV=development
-PORT=3000
-
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=auction_user
-DB_PASSWORD=auction_password
-DB_NAME=auction_system
-
-# JWT
-JWT_SECRET=your-jwt-secret
-JWT_EXPIRES_IN=7d
-
-# RabbitMQ
-RABBITMQ_URL=amqp://auction_user:auction_password@localhost:5672/auction_vhost
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-```
-
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 src/
@@ -195,7 +195,7 @@ src/
     └── interceptors/    # Response interceptors
 ```
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Unit tests
@@ -211,7 +211,7 @@ npm run test:cov
 npm run test:watch
 ```
 
-## 🚀 Deployment
+## Deployment
 
 ### Docker Production
 
@@ -261,7 +261,7 @@ npm run docker:seed
 npm run seed
 ```
 
-## 📨 Message Queue
+## Message Queue
 
 ### RabbitMQ Queues
 
@@ -313,41 +313,3 @@ async handleBidPlaced(data: BidPlacedEvent) {
 - [ ] Third-party integrations
 - [ ] Performance optimizations
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
-
-### Development Guidelines
-
-- Follow TypeScript best practices
-- Write tests for new features
-- Update documentation
-- Follow commit message conventions
-- Ensure Docker builds pass
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 📞 Support
-
-For questions and support:
-
-- Open an issue on GitHub
-- Check the documentation
-- Review existing issues
-
-## 🙏 Acknowledgments
-
-- NestJS team for the amazing framework
-- TypeORM for excellent database integration
-- RabbitMQ for reliable messaging
-- Docker for containerization made easy
-
----
-
-**Happy coding! 🎯**
