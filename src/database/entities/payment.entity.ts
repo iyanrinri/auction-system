@@ -18,6 +18,11 @@ export enum PaymentStatus {
 }
 
 @Entity('payments')
+@Index(['status']) // Index untuk filtering by payment status
+@Index(['createdAt']) // Index untuk sorting by payment date
+@Index(['buyerId', 'status']) // Composite index untuk user's payment history
+@Index(['auctionId', 'status']) // Composite index untuk auction payments
+@Index(['status', 'createdAt']) // Composite index untuk payment status timeline
 export class Payment {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: string;

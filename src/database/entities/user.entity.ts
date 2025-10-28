@@ -16,12 +16,14 @@ export enum UserRole {
 }
 
 @Entity('users')
+@Index(['role']) // Index para filtering by role
+@Index(['createdAt']) // Index para sorting by creation date
 export class User {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: string;
 
   @Column({ type: 'text', unique: true })
-  @Index()
+  @Index() // Index untuk email (already unique constraint)
   @IsEmail()
   @IsNotEmpty()
   email: string;
@@ -31,6 +33,7 @@ export class User {
   password: string;
 
   @Column({ type: 'text', nullable: true })
+  @Index() // Index untuk searching by name
   @IsOptional()
   name?: string;
 

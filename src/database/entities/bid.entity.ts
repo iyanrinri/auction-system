@@ -11,7 +11,11 @@ import {
 import { IsNotEmpty, IsNumber, Min, IsBoolean } from 'class-validator';
 
 @Entity('bids')
-@Index(['auctionId', 'createdAt'])
+@Index(['auctionId', 'createdAt']) // Existing composite index
+@Index(['auctionId', 'amount']) // Index untuk finding highest bid
+@Index(['bidderId', 'createdAt']) // Index untuk user bid history
+@Index(['amount']) // Index untuk sorting by bid amount
+@Index(['isAuto']) // Index untuk filtering auto bids
 export class Bid {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: string;

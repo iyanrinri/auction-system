@@ -19,6 +19,12 @@ export enum AuctionStatus {
 }
 
 @Entity('auctions')
+@Index(['status']) // Index untuk filtering by status
+@Index(['startAt']) // Index untuk sorting by start time
+@Index(['endAt']) // Index untuk sorting by end time
+@Index(['status', 'startAt']) // Composite index untuk active auctions
+@Index(['status', 'endAt']) // Composite index untuk ending auctions
+@Index(['startingPrice']) // Index untuk filtering by price range
 export class Auction {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: string;

@@ -7,10 +7,15 @@ import {
   ManyToOne,
   OneToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { IsNotEmpty, IsOptional } from 'class-validator';
 
 @Entity('items')
+@Index(['sellerId']) 
+@Index(['title'])
+@Index(['createdAt'])
+@Index(['sellerId', 'createdAt'])
 export class Item {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: string;
