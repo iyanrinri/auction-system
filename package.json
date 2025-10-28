@@ -16,6 +16,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
+    "test:cov:open": "jest --coverage && open coverage/lcov-report/index.html",
+    "test:unit": "jest --testPathPattern=src",
+    "test:integration": "jest --testPathPattern=test",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "ts-node -r tsconfig-paths/register src/seed.ts",
@@ -114,9 +117,53 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "**/*.(t|j)s",
+      "!**/*.d.ts",
+      "!**/*.module.ts",
+      "!**/main.ts",
+      "!**/seed.ts",
+      "!**/migrations/**",
+      "!**/node_modules/**",
+      "!**/dist/**",
+      "!**/coverage/**",
+      "!**/*.interface.ts",
+      "!**/*.enum.ts",
+      "!**/*.dto.ts",
+      "!**/index.ts",
+      "!database/data-source.ts",
+      "!database/entities/payment.entity.ts",
+      "!database/entities/watchlist.entity.ts",
+      "!database/seeders/item.seeder.ts",
+      "!messaging/auction-status.controller.ts",
+      "!messaging/auction-status.service.ts",
+      "!auth/guards/roles.guard.ts"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html",
+      "json-summary"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 65,
+        "functions": 75,
+        "lines": 75,
+        "statements": 75
+      }
+    },
+    "setupFilesAfterEnv": [
+      "<rootDir>/../test/setup.ts"
+    ],
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1"
+    },
+    "testTimeout": 30000,
+    "maxWorkers": "50%",
+    "cache": true,
+    "clearMocks": true,
+    "restoreMocks": true
   }
 }
