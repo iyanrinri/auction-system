@@ -24,16 +24,17 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../database/entities/user.entity';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Bids')
 @Controller('bids')
 @UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class BidsController {
   constructor(private readonly bidsService: BidsService) {}
 
   @Post()
   @UseGuards(RolesGuard)
+  @ApiBearerAuth()
   @Roles(UserRole.USER, UserRole.SELLER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Place a bid on an auction' })
   @ApiResponse({
@@ -62,6 +63,7 @@ export class BidsController {
   }
 
   @Get()
+  @Public()
   @ApiOperation({ summary: 'Get all bids with filtering and pagination' })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -118,6 +120,7 @@ export class BidsController {
   }
 
   @Get('auction/:auctionId')
+  @Public()
   @ApiOperation({ summary: 'Get all bids for a specific auction' })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -133,6 +136,7 @@ export class BidsController {
   }
 
   @Get('auction/:auctionId/highest')
+  @Public()
   @ApiOperation({ summary: 'Get the highest bid for a specific auction' })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -148,6 +152,7 @@ export class BidsController {
   }
 
   @Get(':id')
+  @Public()
   @ApiOperation({ summary: 'Get bid by ID' })
   @ApiResponse({
     status: HttpStatus.OK,

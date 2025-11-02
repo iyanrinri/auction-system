@@ -18,7 +18,7 @@ async function bootstrap() {
   // Setup Swagger documentation
   const config = new DocumentBuilder()
     .setTitle('Auction System API')
-    .setDescription('A comprehensive auction system API with user authentication and bidding functionality')
+    .setDescription('A comprehensive auction system API with user authentication, bidding functionality, and real-time updates via WebSocket')
     .setVersion('1.0')
     .addBearerAuth()
     .addTag('Authentication', 'User registration and login endpoints')
@@ -35,11 +35,12 @@ async function bootstrap() {
     },
   });
 
-  // Enable CORS for development
+  // Enable CORS for development (including WebSocket)
   app.enableCors({
-    origin: process.env.NODE_ENV === 'production' ? false : true,
+    origin: process.env.NODE_ENV === 'production' ? false : '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
   });
 
   const port = process.env.PORT ?? 3000;
@@ -47,5 +48,6 @@ async function bootstrap() {
   
   console.log(`🚀 Application is running on: http://localhost:${port}`);
   console.log(`📚 Swagger documentation: http://localhost:${port}/api/docs`);
+  console.log(`🔌 WebSocket server: ws://localhost:${port}/auctions`);
 }
 bootstrap();

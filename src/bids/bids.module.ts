@@ -5,11 +5,13 @@ import { BidsController } from './bids.controller';
 import { Bid } from '../database/entities/bid.entity';
 import { Auction } from '../database/entities/auction.entity';
 import { MessagingModule } from '../messaging/messaging.module';
+import { AuctionsModule } from '../auctions/auctions.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Bid, Auction]),
     MessagingModule,
+    AuctionsModule,
   ],
   controllers: [BidsController],
   providers: [BidsService],

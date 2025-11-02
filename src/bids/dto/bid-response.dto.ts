@@ -61,7 +61,7 @@ export class BidResponseDto {
   auction?: {
     id: string;
     status: string;
-    item: {
+    item?: {
       id: string;
       title: string;
       description: string;

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import { Repository } from 'typeorm';
 import {
   BadRequestException,
   NotFoundException,
@@ -13,89 +13,84 @@ import { User, UserRole } from '../database/entities/user.entity';
 import { Item } from '../database/entities/item.entity';
 import { CreateBidDto, GetBidsQueryDto } from './dto';
 import { BidEventService } from '../messaging/bid-event.service';
+import { AuctionsGateway } from '../auctions/auctions.gateway';
+
+// Helper factories to reduce memory footprint
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'user-1',
+  email: 'user@example.com',
+  password: 'hashedPassword',
+  name: 'Test User',
+  role: UserRole.USER,
+  createdAt: new Date('2025-01-01'),
+  modifiedAt: new Date('2025-01-01'),
+  items: [],
+  bids: [],
+  watchlists: [],
+  payments: [],
+  ...overrides,
+});
+
+const createMockItem = (overrides: Partial<Item> = {}): Item => ({
+  id: 'item-1',
+  sellerId: 'seller-1',
+  title: 'Test Item',
+  description: 'Test Description',
+  metadata: {},
+  createdAt: new Date('2025-01-01'),
+  modifiedAt: new Date('2025-01-01'),
+  seller: null as any,
+  auction: null as any,
+  ...overrides,
+});
+
+const createMockAuction = (overrides: Partial<Auction> = {}): Auction => ({
+  id: 'auction-1',
+  itemId: 'item-1',
+  startingPrice: 100,
+  reservePrice: 200,
+  buyNowPrice: 500,
+  minIncrement: 10,
+  startAt: new Date(Date.now() - 86400000),
+  endAt: new Date(Date.now() + 86400000),
+  status: AuctionStatus.RUNNING,
+  autoExtendSeconds: 300,
+  createdAt: new Date('2025-01-01'),
+  modifiedAt: new Date('2025-01-01'),
+  item: null as any,
+  bids: [],
+  payments: [],
+  watchlists: [],
+  ...overrides,
+});
+
+const createMockBid = (overrides: Partial<Bid> = {}): Bid => ({
+  id: 'bid-1',
+  auctionId: 'auction-1',
+  bidderId: 'bidder-1',
+  amount: 150,
+  isAuto: false,
+  createdAt: new Date('2025-01-01'),
+  modifiedAt: new Date('2025-01-01'),
+  auction: null as any,
+  bidder: null as any,
+  ...overrides,
+});
 
 describe('BidsService', () => {
   let service: BidsService;
   let bidRepository: jest.Mocked<Repository<Bid>>;
   let auctionRepository: jest.Mocked<Repository<Auction>>;
   let bidEventService: jest.Mocked<BidEventService>;
+  let auctionsGateway: jest.Mocked<AuctionsGateway>;
 
-  const mockSeller: User = {
-    id: 'seller-1',
-    email: 'seller@example.com',
-    password: 'hashedPassword',
-    name: 'Seller User',
-    role: UserRole.SELLER,
-    createdAt: new Date(),
-    modifiedAt: new Date(),
-    items: [],
-    bids: [],
-    watchlists: [],
-    payments: [],
-  };
-
-  const mockBidder: User = {
-    id: 'bidder-1',
-    email: 'bidder@example.com',
-    password: 'hashedPassword',
-    name: 'Bidder User',
-    role: UserRole.USER,
-    createdAt: new Date(),
-    modifiedAt: new Date(),
-    items: [],
-    bids: [],
-    watchlists: [],
-    payments: [],
-  };
-
-  const mockItem: Item = {
-    id: 'item-1',
-    sellerId: 'seller-1',
-    title: 'Test Item',
-    description: 'Test Description',
-    metadata: {},
-    createdAt: new Date(),
-    modifiedAt: new Date(),
-    seller: mockSeller,
-    auction: null,
-  };
-
-  const mockAuction: Auction = {
-    id: 'auction-1',
-    itemId: 'item-1',
-    startingPrice: 100,
-    reservePrice: 200,
-    buyNowPrice: 500,
-    minIncrement: 10,
-    startAt: new Date(Date.now() - 86400000), // yesterday (started)
-    endAt: new Date(Date.now() + 86400000), // tomorrow (not ended)
-    status: AuctionStatus.RUNNING,
-    autoExtendSeconds: 300,
-    createdAt: new Date(),
-    modifiedAt: new Date(),
-    item: mockItem,
-    bids: [],
-    payments: [],
-    watchlists: [],
-  };
-
-  const mockBid: Bid = {
-    id: 'bid-1',
-    auctionId: 'auction-1',
-    bidderId: 'bidder-1',
-    amount: 150,
-    isAuto: false,
-    createdAt: new Date(),
-    modifiedAt: new Date(),
-    auction: mockAuction,
-    bidder: mockBidder,
-  };
-
-  const mockCreateBidDto: CreateBidDto = {
-    auctionId: 'auction-1',
-    amount: 150,
-    isAuto: false,
-  };
+  // Reusable test data
+  let mockSeller: User;
+  let mockBidder: User;
+  let mockItem: Item;
+  let mockAuction: Auction;
+  let mockBid: Bid;
+  let mockCreateBidDto: CreateBidDto;
 
   const mockQueryBuilder = {
     leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -112,11 +107,29 @@ describe('BidsService', () => {
   };
 
   beforeEach(async () => {
+    // Initialize mock data
+    mockSeller = createMockUser({ id: 'seller-1', role: UserRole.SELLER, email: 'seller@example.com', name: 'Seller User' });
+    mockBidder = createMockUser({ id: 'bidder-1', role: UserRole.USER, email: 'bidder@example.com', name: 'Bidder User' });
+    mockItem = createMockItem({ sellerId: 'seller-1' });
+    mockAuction = createMockAuction();
+    mockBid = createMockBid();
+    mockCreateBidDto = {
+      auctionId: 'auction-1',
+      amount: 150,
+      isAuto: false,
+    };
+
+    // Link relationships
+    mockItem.seller = mockSeller;
+    mockAuction.item = mockItem;
+    mockBid.auction = mockAuction;
+    mockBid.bidder = mockBidder;
     const mockBidRepository = {
       create: jest.fn(),
       save: jest.fn(),
       findOne: jest.fn(),
       find: jest.fn(),
+      count: jest.fn(),
       createQueryBuilder: jest.fn(() => mockQueryBuilder),
     };
 
@@ -129,6 +142,14 @@ describe('BidsService', () => {
       publishHighestBidChanged: jest.fn(),
       publishReservePriceMet: jest.fn(),
       publishBidOutbid: jest.fn(),
+    };
+
+    const mockAuctionsGateway = {
+      emitNewBid: jest.fn(),
+      emitPriceUpdate: jest.fn(),
+      emitAuctionStatusChange: jest.fn(),
+      emitAuctionEndingSoon: jest.fn(),
+      getActiveViewers: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -146,6 +167,10 @@ describe('BidsService', () => {
           provide: BidEventService,
           useValue: mockBidEventService,
         },
+        {
+          provide: AuctionsGateway,
+          useValue: mockAuctionsGateway,
+        },
       ],
     }).compile();
 
@@ -153,6 +178,7 @@ describe('BidsService', () => {
     bidRepository = module.get(getRepositoryToken(Bid));
     auctionRepository = module.get(getRepositoryToken(Auction));
     bidEventService = module.get(BidEventService);
+    auctionsGateway = module.get(AuctionsGateway);
 
     // Clear all mocks before each test
     jest.clearAllMocks();
@@ -170,6 +196,7 @@ describe('BidsService', () => {
       bidRepository.findOne.mockResolvedValueOnce(null); // no existing bid from user
       bidRepository.create.mockReturnValue(mockBid);
       bidRepository.save.mockResolvedValue(mockBid);
+      bidRepository.count.mockResolvedValue(1); // Mock count for WebSocket update
       
       // Mock findOne to return complete bid response
       jest.spyOn(service, 'findOne').mockResolvedValue({
@@ -211,6 +238,8 @@ describe('BidsService', () => {
         isAuto: mockCreateBidDto.isAuto,
       });
       expect(bidRepository.save).toHaveBeenCalledWith(mockBid);
+      expect(auctionsGateway.emitNewBid).toHaveBeenCalled();
+      expect(auctionsGateway.emitPriceUpdate).toHaveBeenCalled();
       expect(bidEventService.publishBidPlaced).toHaveBeenCalled();
       expect(result).toBeDefined();
       expect(result.id).toBe(mockBid.id);
@@ -298,6 +327,7 @@ describe('BidsService', () => {
       bidRepository.findOne.mockResolvedValueOnce(null); // no existing bid from user
       bidRepository.create.mockReturnValue(mockBid);
       bidRepository.save.mockResolvedValue(mockBid);
+      bidRepository.count.mockResolvedValue(2); // Mock count for WebSocket update
       
       jest.spyOn(service, 'findOne').mockResolvedValue({} as any);
 

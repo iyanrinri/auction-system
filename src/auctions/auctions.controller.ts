@@ -26,18 +26,19 @@ import { AuctionResponseDto, PaginatedAuctionsResponseDto } from './dto/auction-
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { UserRole } from '../database/entities/user.entity';
 import { AuctionStatus } from '../database/entities/auction.entity';
 
 @ApiTags('Auctions')
 @Controller('api/v1/auctions')
 @UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class AuctionsController {
   constructor(private readonly auctionsService: AuctionsService) {}
 
   @Post()
   @UseGuards(RolesGuard)
+  @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new auction (Seller only)' })
   @ApiResponse({
@@ -66,7 +67,8 @@ export class AuctionsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all auctions with filtering and pagination' })
+  @Public()
+  @ApiOperation({ summary: 'Get all auctions with filtering and pagination (Public)' })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Auctions retrieved successfully',
@@ -128,6 +130,7 @@ export class AuctionsController {
 
   @Get('my-auctions')
   @UseGuards(RolesGuard)
+  @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get current user\'s auctions (Seller only)' })
   @ApiResponse({
@@ -140,7 +143,8 @@ export class AuctionsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get auction by ID with current highest bid and time remaining' })
+  @Public()
+  @ApiOperation({ summary: 'Get auction by ID with current highest bid and time remaining (Public)' })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Auction retrieved successfully',
@@ -155,6 +159,7 @@ export class AuctionsController {
   }
 
   @Patch(':id')
+  @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Update auction (Seller/Admin only)' })
@@ -184,6 +189,7 @@ export class AuctionsController {
   }
 
   @Delete(':id')
+  @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Delete auction (Seller/Admin only)' })

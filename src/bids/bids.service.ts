@@ -12,6 +12,7 @@ import { Auction, AuctionStatus } from '../database/entities/auction.entity';
 import { User } from '../database/entities/user.entity';
 import { CreateBidDto, GetBidsQueryDto, BidResponseDto, PaginatedBidsResponseDto } from './dto';
 import { BidEventService } from '../messaging/bid-event.service';
+import { AuctionsGateway } from '../auctions/auctions.gateway';
 
 @Injectable()
 export class BidsService {
@@ -21,6 +22,7 @@ export class BidsService {
     @InjectRepository(Auction)
     private auctionRepository: Repository<Auction>,
     private bidEventService: BidEventService,
+    private auctionsGateway: AuctionsGateway,
   ) {}
 
   async create(createBidDto: CreateBidDto, bidderId: string): Promise<BidResponseDto> {
@@ -92,6 +94,24 @@ export class BidsService {
     // Get the complete bid with related data
     const completeBid = await this.findOne(savedBid.id);
 
+    // Emit WebSocket event for real-time updates
+    this.auctionsGateway.emitNewBid(auctionId, {
+      id: savedBid.id,
+      amount: parseFloat(savedBid.amount.toString()),
+      bidderId,
+      bidderName: completeBid.bidder?.name,
+      isAuto: isAuto ?? false,
+      createdAt: savedBid.createdAt,
+    });
+
+    // Update price via WebSocket
+    const bidsCount = await this.bidRepository.count({ where: { auctionId } });
+    this.auctionsGateway.emitPriceUpdate(
+      auctionId,
+      parseFloat(amount.toString()),
+      bidsCount,
+    );
+
     // Publish bid events
     try {
       // Publish bid placed event
@@ -129,24 +149,7 @@ export class BidsService {
     const queryBuilder = this.bidRepository.createQueryBuilder('bid')
       .leftJoinAndSelect('bid.auction', 'auction')
       .leftJoinAndSelect('auction.item', 'item')
-      .leftJoinAndSelect('bid.bidder', 'bidder')
-      .select([
-        'bid.id',
-        'bid.auctionId',
-        'bid.bidderId',
-        'bid.amount',
-        'bid.isAuto',
-        'bid.createdAt',
-        'bid.modifiedAt',
-        'auction.id',
-        'auction.status',
-        'item.id',
-        'item.title',
-        'item.description',
-        'bidder.id',
-        'bidder.name',
-        'bidder.email',
-      ]);
+      .leftJoinAndSelect('bid.bidder', 'bidder');
 
     // Apply filters
     if (auctionId) {
@@ -165,38 +168,37 @@ export class BidsService {
 
     const [bids, total] = await queryBuilder.getManyAndCount();
 
-    const transformedBids = bids.map((bid) =>
-      plainToClass(BidResponseDto, {
-        ...bid,
-        auction: bid.auction ? {
-          id: bid.auction.id,
-          status: bid.auction.status,
-          item: bid.auction.item ? {
-            id: bid.auction.item.id,
-            title: bid.auction.item.title,
-            description: bid.auction.item.description,
-          } : undefined,
+    const transformedBids = bids.map((bid) => ({
+      id: bid.id,
+      auctionId: bid.auctionId,
+      bidderId: bid.bidderId,
+      amount: parseFloat(bid.amount.toString()),
+      isAuto: bid.isAuto,
+      createdAt: bid.createdAt,
+      modifiedAt: bid.modifiedAt,
+      auction: bid.auction ? {
+        id: bid.auction.id,
+        status: bid.auction.status,
+        item: bid.auction.item ? {
+          id: bid.auction.item.id,
+          title: bid.auction.item.title,
+          description: bid.auction.item.description || '',
         } : undefined,
-        bidder: bid.bidder ? {
-          id: bid.bidder.id,
-          name: bid.bidder.name,
-          email: bid.bidder.email,
-        } : undefined,
-      }),
-      { excludeExtraneousValues: true },
-    );
+      } : undefined,
+      bidder: bid.bidder ? {
+        id: bid.bidder.id,
+        name: bid.bidder.name || '',
+        email: bid.bidder.email,
+      } : undefined,
+    }));
 
-    return plainToClass(
-      PaginatedBidsResponseDto,
-      {
-        bids: transformedBids,
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-      { excludeExtraneousValues: true },
-    );
+    return {
+      bids: transformedBids,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: string): Promise<BidResponseDto> {
@@ -209,27 +211,29 @@ export class BidsService {
       throw new NotFoundException('Bid not found');
     }
 
-    return plainToClass(
-      BidResponseDto,
-      {
-        ...bid,
-        auction: bid.auction ? {
-          id: bid.auction.id,
-          status: bid.auction.status,
-          item: bid.auction.item ? {
-            id: bid.auction.item.id,
-            title: bid.auction.item.title,
-            description: bid.auction.item.description,
-          } : undefined,
+    return {
+      id: bid.id,
+      auctionId: bid.auctionId,
+      bidderId: bid.bidderId,
+      amount: parseFloat(bid.amount.toString()),
+      isAuto: bid.isAuto,
+      createdAt: bid.createdAt,
+      modifiedAt: bid.modifiedAt,
+      auction: bid.auction ? {
+        id: bid.auction.id,
+        status: bid.auction.status,
+        item: bid.auction.item ? {
+          id: bid.auction.item.id,
+          title: bid.auction.item.title,
+          description: bid.auction.item.description || '',
         } : undefined,
-        bidder: bid.bidder ? {
-          id: bid.bidder.id,
-          name: bid.bidder.name,
-          email: bid.bidder.email,
-        } : undefined,
-      },
-      { excludeExtraneousValues: true },
-    );
+      } : undefined,
+      bidder: bid.bidder ? {
+        id: bid.bidder.id,
+        name: bid.bidder.name || '',
+        email: bid.bidder.email,
+      } : undefined,
+    };
   }
 
   async findByBidderId(bidderId: string): Promise<BidResponseDto[]> {
@@ -239,29 +243,29 @@ export class BidsService {
       order: { createdAt: 'DESC' },
     });
 
-    return bids.map((bid) =>
-      plainToClass(
-        BidResponseDto,
-        {
-          ...bid,
-          auction: bid.auction ? {
-            id: bid.auction.id,
-            status: bid.auction.status,
-            item: bid.auction.item ? {
-              id: bid.auction.item.id,
-              title: bid.auction.item.title,
-              description: bid.auction.item.description,
-            } : undefined,
-          } : undefined,
-          bidder: bid.bidder ? {
-            id: bid.bidder.id,
-            name: bid.bidder.name,
-            email: bid.bidder.email,
-          } : undefined,
-        },
-        { excludeExtraneousValues: true },
-      ),
-    );
+    return bids.map((bid) => ({
+      id: bid.id,
+      auctionId: bid.auctionId,
+      bidderId: bid.bidderId,
+      amount: parseFloat(bid.amount.toString()),
+      isAuto: bid.isAuto,
+      createdAt: bid.createdAt,
+      modifiedAt: bid.modifiedAt,
+      auction: bid.auction ? {
+        id: bid.auction.id,
+        status: bid.auction.status,
+        item: bid.auction.item ? {
+          id: bid.auction.item.id,
+          title: bid.auction.item.title,
+          description: bid.auction.item.description || '',
+        } : undefined,
+      } : undefined,
+      bidder: bid.bidder ? {
+        id: bid.bidder.id,
+        name: bid.bidder.name || '',
+        email: bid.bidder.email,
+      } : undefined,
+    }));
   }
 
   async findByAuctionId(auctionId: string): Promise<BidResponseDto[]> {
@@ -271,29 +275,29 @@ export class BidsService {
       order: { amount: 'DESC', createdAt: 'DESC' },
     });
 
-    return bids.map((bid) =>
-      plainToClass(
-        BidResponseDto,
-        {
-          ...bid,
-          auction: bid.auction ? {
-            id: bid.auction.id,
-            status: bid.auction.status,
-            item: bid.auction.item ? {
-              id: bid.auction.item.id,
-              title: bid.auction.item.title,
-              description: bid.auction.item.description,
-            } : undefined,
-          } : undefined,
-          bidder: bid.bidder ? {
-            id: bid.bidder.id,
-            name: bid.bidder.name,
-            email: bid.bidder.email,
-          } : undefined,
-        },
-        { excludeExtraneousValues: true },
-      ),
-    );
+    return bids.map((bid) => ({
+      id: bid.id,
+      auctionId: bid.auctionId,
+      bidderId: bid.bidderId,
+      amount: parseFloat(bid.amount.toString()),
+      isAuto: bid.isAuto,
+      createdAt: bid.createdAt,
+      modifiedAt: bid.modifiedAt,
+      auction: bid.auction ? {
+        id: bid.auction.id,
+        status: bid.auction.status,
+        item: bid.auction.item ? {
+          id: bid.auction.item.id,
+          title: bid.auction.item.title,
+          description: bid.auction.item.description || '',
+        } : undefined,
+      } : undefined,
+      bidder: bid.bidder ? {
+        id: bid.bidder.id,
+        name: bid.bidder.name || '',
+        email: bid.bidder.email,
+      } : undefined,
+    }));
   }
 
   async getHighestBidForAuction(auctionId: string): Promise<BidResponseDto | null> {
@@ -307,26 +311,28 @@ export class BidsService {
       return null;
     }
 
-    return plainToClass(
-      BidResponseDto,
-      {
-        ...bid,
-        auction: bid.auction ? {
-          id: bid.auction.id,
-          status: bid.auction.status,
-          item: bid.auction.item ? {
-            id: bid.auction.item.id,
-            title: bid.auction.item.title,
-            description: bid.auction.item.description,
-          } : undefined,
+    return {
+      id: bid.id,
+      auctionId: bid.auctionId,
+      bidderId: bid.bidderId,
+      amount: parseFloat(bid.amount.toString()),
+      isAuto: bid.isAuto,
+      createdAt: bid.createdAt,
+      modifiedAt: bid.modifiedAt,
+      auction: bid.auction ? {
+        id: bid.auction.id,
+        status: bid.auction.status,
+        item: bid.auction.item ? {
+          id: bid.auction.item.id,
+          title: bid.auction.item.title,
+          description: bid.auction.item.description || '',
         } : undefined,
-        bidder: bid.bidder ? {
-          id: bid.bidder.id,
-          name: bid.bidder.name,
-          email: bid.bidder.email,
-        } : undefined,
-      },
-      { excludeExtraneousValues: true },
-    );
+      } : undefined,
+      bidder: bid.bidder ? {
+        id: bid.bidder.id,
+        name: bid.bidder.name || '',
+        email: bid.bidder.email,
+      } : undefined,
+    };
   }
 }
