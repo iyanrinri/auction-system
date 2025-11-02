@@ -287,7 +287,7 @@ curl -X DELETE http://localhost:3000/items/item-uuid-here \
 ## 🏆 Auctions Endpoints
 
 ### 1. Create Auction (Seller Only)
-**POST** `/api/v1/auctions`
+**POST** `/auctions`
 
 Membuat auction baru untuk item.
 
@@ -312,7 +312,7 @@ Authorization: Bearer <seller_jwt_token>
 
 **cURL Example:**
 ```bash
-curl -X POST http://localhost:3000/api/v1/auctions \
+curl -X POST http://localhost:3000/auctions \
   -H "Authorization: Bearer <seller_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -345,7 +345,7 @@ curl -X POST http://localhost:3000/api/v1/auctions \
 ```
 
 ### 2. Get All Auctions (Public)
-**GET** `/api/v1/auctions`
+**GET** `/auctions`
 
 Mendapatkan daftar auction dengan filter dan pagination. **Route ini public dan tidak memerlukan authentication.**
 
@@ -363,13 +363,13 @@ Mendapatkan daftar auction dengan filter dan pagination. **Route ini public dan 
 **cURL Example:**
 ```bash
 # Basic request (No authentication needed)
-curl -X GET "http://localhost:3000/api/v1/auctions"
+curl -X GET "http://localhost:3000/auctions"
 
 # With filters
-curl -X GET "http://localhost:3000/api/v1/auctions?status=RUNNING&page=1&limit=5"
+curl -X GET "http://localhost:3000/auctions?status=RUNNING&page=1&limit=5"
 
 # Search auctions
-curl -X GET "http://localhost:3000/api/v1/auctions?q=watch&minPrice=100&maxPrice=1000"
+curl -X GET "http://localhost:3000/auctions?q=watch&minPrice=100&maxPrice=1000"
 ```
 
 **Response:**
@@ -408,14 +408,14 @@ curl -X GET "http://localhost:3000/api/v1/auctions?q=watch&minPrice=100&maxPrice
 ```
 
 ### 3. Get Auction by ID (Public)
-**GET** `/api/v1/auctions/:id`
+**GET** `/auctions/:id`
 
 Mendapatkan detail auction beserta bids. **Route ini public dan tidak memerlukan authentication.**
 
 **cURL Example:**
 ```bash
 # No authentication needed
-curl -X GET "http://localhost:3000/api/v1/auctions/auction-uuid-here"
+curl -X GET "http://localhost:3000/auctions/auction-uuid-here"
 ```
 
 **Response:**
@@ -450,7 +450,7 @@ curl -X GET "http://localhost:3000/api/v1/auctions/auction-uuid-here"
 ```
 
 ### 4. Update Auction (Seller Only)
-**PATCH** `/api/v1/auctions/:id`
+**PATCH** `/auctions/:id`
 
 Update auction yang dimiliki seller.
 
@@ -469,7 +469,7 @@ Authorization: Bearer <seller_jwt_token>
 
 **cURL Example:**
 ```bash
-curl -X PATCH http://localhost:3000/api/v1/auctions/auction-uuid-here \
+curl -X PATCH http://localhost:3000/auctions/auction-uuid-here \
   -H "Authorization: Bearer <seller_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -479,7 +479,7 @@ curl -X PATCH http://localhost:3000/api/v1/auctions/auction-uuid-here \
 ```
 
 ### 5. Delete Auction (Seller Only)
-**DELETE** `/api/v1/auctions/:id`
+**DELETE** `/auctions/:id`
 
 Menghapus auction yang belum dimulai.
 
@@ -490,7 +490,7 @@ Authorization: Bearer <seller_jwt_token>
 
 **cURL Example:**
 ```bash
-curl -X DELETE http://localhost:3000/api/v1/auctions/auction-uuid-here \
+curl -X DELETE http://localhost:3000/auctions/auction-uuid-here \
   -H "Authorization: Bearer <seller_token>"
 ```
 
@@ -499,7 +499,7 @@ curl -X DELETE http://localhost:3000/api/v1/auctions/auction-uuid-here \
 ## 💰 Bids Endpoints
 
 ### 1. Place Bid (Authenticated User)
-**POST** `/api/v1/bids`
+**POST** `/bids`
 
 Menempatkan bid pada auction yang sedang berjalan.
 
@@ -519,7 +519,7 @@ Authorization: Bearer <user_jwt_token>
 
 **cURL Example:**
 ```bash
-curl -X POST http://localhost:3000/api/v1/bids \
+curl -X POST http://localhost:3000/bids \
   -H "Authorization: Bearer <user_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -548,7 +548,7 @@ curl -X POST http://localhost:3000/api/v1/bids \
 ```
 
 ### 2. Get All Bids (Public - No Auth Required)
-**GET** `/api/v1/bids`
+**GET** `/bids`
 
 Mendapatkan daftar semua bids dengan filter dan pagination. **Route ini public dan tidak memerlukan authentication.**
 
@@ -563,13 +563,13 @@ Mendapatkan daftar semua bids dengan filter dan pagination. **Route ini public d
 **cURL Example:**
 ```bash
 # Basic request (no auth required)
-curl http://localhost:3000/api/v1/bids
+curl http://localhost:3000/bids
 
 # Filter by auction
-curl "http://localhost:3000/api/v1/bids?auctionId=auction-uuid-here&page=1&limit=10"
+curl "http://localhost:3000/bids?auctionId=auction-uuid-here&page=1&limit=10"
 
 # Sort by amount descending
-curl "http://localhost:3000/api/v1/bids?sortBy=amount&sortOrder=DESC"
+curl "http://localhost:3000/bids?sortBy=amount&sortOrder=DESC"
 ```
 
 **Response:**
@@ -600,37 +600,37 @@ curl "http://localhost:3000/api/v1/bids?sortBy=amount&sortOrder=DESC"
 ```
 
 ### 3. Get Bids by Auction ID (Public - No Auth Required)
-**GET** `/api/v1/bids/auction/:auctionId`
+**GET** `/bids/auction/:auctionId`
 
 Mendapatkan semua bids untuk auction tertentu. **Route ini public dan tidak memerlukan authentication.**
 
 **cURL Example:**
 ```bash
-curl http://localhost:3000/api/v1/bids/auction/auction-uuid-here
+curl http://localhost:3000/bids/auction/auction-uuid-here
 ```
 
 ### 4. Get Highest Bid (Public - No Auth Required)
-**GET** `/api/v1/bids/auction/:auctionId/highest`
+**GET** `/bids/auction/:auctionId/highest`
 
 Mendapatkan bid tertinggi untuk auction tertentu. **Route ini public dan tidak memerlukan authentication.**
 
 **cURL Example:**
 ```bash
-curl http://localhost:3000/api/v1/bids/auction/auction-uuid-here/highest
+curl http://localhost:3000/bids/auction/auction-uuid-here/highest
 ```
 
 ### 5. Get Bid by ID (Public - No Auth Required)
-**GET** `/api/v1/bids/:id`
+**GET** `/bids/:id`
 
 Mendapatkan detail bid berdasarkan ID. **Route ini public dan tidak memerlukan authentication.**
 
 **cURL Example:**
 ```bash
-curl http://localhost:3000/api/v1/bids/bid-uuid-here
+curl http://localhost:3000/bids/bid-uuid-here
 ```
 
 ### 6. Get User's Bids (Authenticated User)
-**GET** `/api/v1/bids/my-bids`
+**GET** `/bids/my-bids`
 
 Mendapatkan semua bid yang dibuat oleh user yang sedang login.
 
@@ -641,7 +641,7 @@ Authorization: Bearer <user_jwt_token>
 
 **cURL Example:**
 ```bash
-curl http://localhost:3000/api/v1/bids/my-bids \
+curl http://localhost:3000/bids/my-bids \
   -H "Authorization: Bearer <user_token>"
 ```
 

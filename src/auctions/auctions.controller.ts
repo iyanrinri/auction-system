@@ -31,7 +31,7 @@ import { UserRole } from '../database/entities/user.entity';
 import { AuctionStatus } from '../database/entities/auction.entity';
 
 @ApiTags('Auctions')
-@Controller('api/v1/auctions')
+@Controller('auctions')
 @UseGuards(JwtAuthGuard)
 export class AuctionsController {
   constructor(private readonly auctionsService: AuctionsService) {}
