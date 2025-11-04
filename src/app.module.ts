@@ -9,6 +9,7 @@ import { ItemsModule } from './items/items.module';
 import { AuctionsModule } from './auctions/auctions.module';
 import { BidsModule } from './bids/bids.module';
 import { MessagingModule } from './messaging/messaging.module';
+import { BotsModule } from './bots/bots.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { MessagingModule } from './messaging/messaging.module';
     AuctionsModule,
     BidsModule,
     MessagingModule,
+    BotsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

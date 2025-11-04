@@ -121,18 +121,34 @@ export class BidsController {
 
   @Get('auction/:auctionId')
   @Public()
-  @ApiOperation({ summary: 'Get all bids for a specific auction' })
+  @ApiOperation({ summary: 'Get all bids for a specific auction with pagination' })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Auction bids retrieved successfully',
-    type: [BidResponseDto],
+    type: PaginatedBidsResponseDto,
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'Auction not found',
   })
-  async findByAuctionId(@Param('auctionId') auctionId: string): Promise<BidResponseDto[]> {
-    return this.bidsService.findByAuctionId(auctionId);
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number for pagination',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of bids per page',
+    example: 10,
+  })
+  async findByAuctionId(
+    @Param('auctionId') auctionId: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ): Promise<PaginatedBidsResponseDto> {
+    return this.bidsService.findByAuctionId(auctionId, page, limit);
   }
 
   @Get('auction/:auctionId/highest')

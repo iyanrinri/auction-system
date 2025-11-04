@@ -25,7 +25,7 @@ export class BidResponseDto {
 
   @ApiProperty({
     description: 'Bid amount',
-    example: 1550.00,
+    example: 1550.0,
   })
   @Expose()
   @Transform(({ value }) => parseFloat(value))

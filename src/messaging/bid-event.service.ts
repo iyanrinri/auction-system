@@ -23,23 +23,16 @@ export class BidEventService {
         timestamp: new Date().toISOString(),
       };
 
-      // Publish to exchange for broad distribution
-      await this.rabbitMQService.publishMessage(
-        'auction.exchange',
-        'bid.placed',
-        bidEvent
-      );
-
-      // Also send to specific bid notifications queue
+      // Send to specific bid notifications queue for processing
       await this.rabbitMQService.publishToQueue(
         'bid.notifications',
         bidEvent
       );
 
-      this.logger.log(`Published bid placed event for bid ${bid.id} on auction ${bid.auctionId}`);
+      this.logger.log(`📤 Published bid placed event for bid ${bid.id} on auction ${bid.auctionId}`);
     } catch (error) {
       this.logger.error('Failed to publish bid placed event:', error);
-    }
+    }    
   }
 
   async publishHighestBidChanged(auctionId: string, newHighestBid: BidResponseDto, previousAmount?: number) {
@@ -58,13 +51,13 @@ export class BidEventService {
         timestamp: new Date().toISOString(),
       };
 
-      await this.rabbitMQService.publishMessage(
-        'auction.exchange',
-        'bid.highest.changed',
+      // Send to bid notifications queue (not used yet, for future analytics)
+      await this.rabbitMQService.publishToQueue(
+        'bid.notifications',
         event
       );
 
-      this.logger.log(`Published highest bid changed event for auction ${auctionId}`);
+      this.logger.log(`📤 Published highest bid changed event for auction ${auctionId}`);
     } catch (error) {
       this.logger.error('Failed to publish highest bid changed event:', error);
     }
@@ -85,13 +78,13 @@ export class BidEventService {
         timestamp: new Date().toISOString(),
       };
 
-      await this.rabbitMQService.publishMessage(
-        'auction.exchange',
-        'auction.reserve.met',
+      // Send to bid notifications queue for email to seller
+      await this.rabbitMQService.publishToQueue(
+        'bid.notifications',
         event
       );
 
-      this.logger.log(`Published reserve price met event for auction ${auctionId}`);
+      this.logger.log(`📤 Published reserve price met event for auction ${auctionId}`);
     } catch (error) {
       this.logger.error('Failed to publish reserve price met event:', error);
     }
@@ -112,13 +105,13 @@ export class BidEventService {
         timestamp: new Date().toISOString(),
       };
 
-      await this.rabbitMQService.publishMessage(
-        'auction.exchange',
-        'bid.outbid',
+      // Send to bid notifications queue for outbid email
+      await this.rabbitMQService.publishToQueue(
+        'bid.notifications',
         event
       );
 
-      this.logger.log(`Published bid outbid event for bidder ${outbidBidderId} on auction ${auctionId}`);
+      this.logger.log(`📤 Published bid outbid event for bidder ${outbidBidderId} on auction ${auctionId}`);
     } catch (error) {
       this.logger.error('Failed to publish bid outbid event:', error);
     }
@@ -128,7 +121,7 @@ export class BidEventService {
     try {
       // Consumer untuk bid notifications
       await this.rabbitMQService.consumeQueue('bid.notifications', async (message) => {
-        this.logger.log('Processing bid notification:', message);
+        // this.logger.log('Processing bid notification:', message);
         
         // Di sini nanti bisa ditambahkan logic untuk:
         // - Send email notifications
@@ -154,7 +147,7 @@ export class BidEventService {
         }
       });
 
-      this.logger.log('Bid event consumer started successfully');
+      // this.logger.log('Bid event consumer started successfully');
     } catch (error) {
       this.logger.error('Failed to start bid event consumer:', error);
     }

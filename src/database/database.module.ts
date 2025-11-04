@@ -29,7 +29,7 @@ if (!globalThis.crypto) {
         database: configService.get('DB_NAME'),
         entities: [User, Item, Auction, Bid, Payment, Watchlist],
         synchronize: configService.get('NODE_ENV') !== 'production',
-        logging: configService.get('NODE_ENV') === 'development',
+        logging: configService.get('DB_LOGGING') === 'true',
         ssl: configService.get('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
       }),
       inject: [ConfigService],

@@ -6,11 +6,14 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { plainToClass } from 'class-transformer';
 import { Bid } from '../database/entities/bid.entity';
 import { Auction, AuctionStatus } from '../database/entities/auction.entity';
-import { User } from '../database/entities/user.entity';
-import { CreateBidDto, GetBidsQueryDto, BidResponseDto, PaginatedBidsResponseDto } from './dto';
+import {
+  CreateBidDto,
+  GetBidsQueryDto,
+  BidResponseDto,
+  PaginatedBidsResponseDto,
+} from './dto';
 import { BidEventService } from '../messaging/bid-event.service';
 import { AuctionsGateway } from '../auctions/auctions.gateway';
 
@@ -25,7 +28,10 @@ export class BidsService {
     private auctionsGateway: AuctionsGateway,
   ) {}
 
-  async create(createBidDto: CreateBidDto, bidderId: string): Promise<BidResponseDto> {
+  async create(
+    createBidDto: CreateBidDto,
+    bidderId: string,
+  ): Promise<BidResponseDto> {
     const { auctionId, amount, isAuto } = createBidDto;
 
     // Find the auction with its item and seller details
@@ -62,7 +68,8 @@ export class BidsService {
 
     // Validate bid amount
     const minimumBid = currentHighestBid
-      ? parseFloat(currentHighestBid.amount.toString()) + parseFloat(auction.minIncrement.toString())
+      ? parseFloat(currentHighestBid.amount.toString()) +
+        parseFloat(auction.minIncrement.toString())
       : parseFloat(auction.startingPrice.toString());
 
     if (amount < minimumBid) {
@@ -78,7 +85,9 @@ export class BidsService {
     });
 
     if (existingBid && parseFloat(existingBid.amount.toString()) >= amount) {
-      throw new BadRequestException('You already have a higher or equal bid on this auction');
+      throw new BadRequestException(
+        'You already have a higher or equal bid on this auction',
+      );
     }
 
     // Create the bid
@@ -118,20 +127,36 @@ export class BidsService {
       await this.bidEventService.publishBidPlaced(completeBid, auction);
 
       // Check if this is a new highest bid
-      const previousHighestAmount = currentHighestBid ? parseFloat(currentHighestBid.amount.toString()) : 0;
+      const previousHighestAmount = currentHighestBid
+        ? parseFloat(currentHighestBid.amount.toString())
+        : 0;
       if (amount > previousHighestAmount) {
-        await this.bidEventService.publishHighestBidChanged(auctionId, completeBid, previousHighestAmount);
+        await this.bidEventService.publishHighestBidChanged(
+          auctionId,
+          completeBid,
+          previousHighestAmount,
+        );
 
         // Check if reserve price was met for the first time
-        if (auction.reservePrice && 
-            amount >= parseFloat(auction.reservePrice.toString()) && 
-            previousHighestAmount < parseFloat(auction.reservePrice.toString())) {
-          await this.bidEventService.publishReservePriceMet(auctionId, completeBid, parseFloat(auction.reservePrice.toString()));
+        if (
+          auction.reservePrice &&
+          amount >= parseFloat(auction.reservePrice.toString()) &&
+          previousHighestAmount < parseFloat(auction.reservePrice.toString())
+        ) {
+          await this.bidEventService.publishReservePriceMet(
+            auctionId,
+            completeBid,
+            parseFloat(auction.reservePrice.toString()),
+          );
         }
 
         // Notify previous highest bidder that they were outbid
         if (currentHighestBid && currentHighestBid.bidderId !== bidderId) {
-          await this.bidEventService.publishBidOutbid(currentHighestBid.bidderId, auctionId, completeBid);
+          await this.bidEventService.publishBidOutbid(
+            currentHighestBid.bidderId,
+            auctionId,
+            completeBid,
+          );
         }
       }
     } catch (error) {
@@ -143,10 +168,18 @@ export class BidsService {
   }
 
   async findAll(query: GetBidsQueryDto): Promise<PaginatedBidsResponseDto> {
-    const { auctionId, bidderId, page = 1, limit = 10, sortBy, sortOrder } = query;
+    const {
+      auctionId,
+      bidderId,
+      page = 1,
+      limit = 10,
+      sortBy,
+      sortOrder,
+    } = query;
     const skip = (page - 1) * limit;
 
-    const queryBuilder = this.bidRepository.createQueryBuilder('bid')
+    const queryBuilder = this.bidRepository
+      .createQueryBuilder('bid')
       .leftJoinAndSelect('bid.auction', 'auction')
       .leftJoinAndSelect('auction.item', 'item')
       .leftJoinAndSelect('bid.bidder', 'bidder');
@@ -176,20 +209,26 @@ export class BidsService {
       isAuto: bid.isAuto,
       createdAt: bid.createdAt,
       modifiedAt: bid.modifiedAt,
-      auction: bid.auction ? {
-        id: bid.auction.id,
-        status: bid.auction.status,
-        item: bid.auction.item ? {
-          id: bid.auction.item.id,
-          title: bid.auction.item.title,
-          description: bid.auction.item.description || '',
-        } : undefined,
-      } : undefined,
-      bidder: bid.bidder ? {
-        id: bid.bidder.id,
-        name: bid.bidder.name || '',
-        email: bid.bidder.email,
-      } : undefined,
+      auction: bid.auction
+        ? {
+            id: bid.auction.id,
+            status: bid.auction.status,
+            item: bid.auction.item
+              ? {
+                  id: bid.auction.item.id,
+                  title: bid.auction.item.title,
+                  description: bid.auction.item.description || '',
+                }
+              : undefined,
+          }
+        : undefined,
+      bidder: bid.bidder
+        ? {
+            id: bid.bidder.id,
+            name: bid.bidder.name || '',
+            email: bid.bidder.email,
+          }
+        : undefined,
     }));
 
     return {
@@ -219,20 +258,26 @@ export class BidsService {
       isAuto: bid.isAuto,
       createdAt: bid.createdAt,
       modifiedAt: bid.modifiedAt,
-      auction: bid.auction ? {
-        id: bid.auction.id,
-        status: bid.auction.status,
-        item: bid.auction.item ? {
-          id: bid.auction.item.id,
-          title: bid.auction.item.title,
-          description: bid.auction.item.description || '',
-        } : undefined,
-      } : undefined,
-      bidder: bid.bidder ? {
-        id: bid.bidder.id,
-        name: bid.bidder.name || '',
-        email: bid.bidder.email,
-      } : undefined,
+      auction: bid.auction
+        ? {
+            id: bid.auction.id,
+            status: bid.auction.status,
+            item: bid.auction.item
+              ? {
+                  id: bid.auction.item.id,
+                  title: bid.auction.item.title,
+                  description: bid.auction.item.description || '',
+                }
+              : undefined,
+          }
+        : undefined,
+      bidder: bid.bidder
+        ? {
+            id: bid.bidder.id,
+            name: bid.bidder.name || '',
+            email: bid.bidder.email,
+          }
+        : undefined,
     };
   }
 
@@ -251,31 +296,48 @@ export class BidsService {
       isAuto: bid.isAuto,
       createdAt: bid.createdAt,
       modifiedAt: bid.modifiedAt,
-      auction: bid.auction ? {
-        id: bid.auction.id,
-        status: bid.auction.status,
-        item: bid.auction.item ? {
-          id: bid.auction.item.id,
-          title: bid.auction.item.title,
-          description: bid.auction.item.description || '',
-        } : undefined,
-      } : undefined,
-      bidder: bid.bidder ? {
-        id: bid.bidder.id,
-        name: bid.bidder.name || '',
-        email: bid.bidder.email,
-      } : undefined,
+      auction: bid.auction
+        ? {
+            id: bid.auction.id,
+            status: bid.auction.status,
+            item: bid.auction.item
+              ? {
+                  id: bid.auction.item.id,
+                  title: bid.auction.item.title,
+                  description: bid.auction.item.description || '',
+                }
+              : undefined,
+          }
+        : undefined,
+      bidder: bid.bidder
+        ? {
+            id: bid.bidder.id,
+            name: bid.bidder.name || '',
+            email: bid.bidder.email,
+          }
+        : undefined,
     }));
   }
 
-  async findByAuctionId(auctionId: string): Promise<BidResponseDto[]> {
-    const bids = await this.bidRepository.find({
+  async findByAuctionId(
+    auctionId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<PaginatedBidsResponseDto> {
+    // Ensure valid pagination params
+    const validPage = Math.max(1, page);
+    const validLimit = Math.min(100, Math.max(1, limit)); // Max 100 per page
+    const skip = (validPage - 1) * validLimit;
+
+    const [bids, total] = await this.bidRepository.findAndCount({
       where: { auctionId },
       relations: ['auction', 'auction.item', 'bidder'],
       order: { amount: 'DESC', createdAt: 'DESC' },
+      skip,
+      take: validLimit,
     });
 
-    return bids.map((bid) => ({
+    const transformedBids = bids.map((bid) => ({
       id: bid.id,
       auctionId: bid.auctionId,
       bidderId: bid.bidderId,
@@ -283,24 +345,40 @@ export class BidsService {
       isAuto: bid.isAuto,
       createdAt: bid.createdAt,
       modifiedAt: bid.modifiedAt,
-      auction: bid.auction ? {
-        id: bid.auction.id,
-        status: bid.auction.status,
-        item: bid.auction.item ? {
-          id: bid.auction.item.id,
-          title: bid.auction.item.title,
-          description: bid.auction.item.description || '',
-        } : undefined,
-      } : undefined,
-      bidder: bid.bidder ? {
-        id: bid.bidder.id,
-        name: bid.bidder.name || '',
-        email: bid.bidder.email,
-      } : undefined,
+      auction: bid.auction
+        ? {
+            id: bid.auction.id,
+            status: bid.auction.status,
+            item: bid.auction.item
+              ? {
+                  id: bid.auction.item.id,
+                  title: bid.auction.item.title,
+                  description: bid.auction.item.description || '',
+                }
+              : undefined,
+          }
+        : undefined,
+      bidder: bid.bidder
+        ? {
+            id: bid.bidder.id,
+            name: bid.bidder.name || '',
+            email: bid.bidder.email,
+          }
+        : undefined,
     }));
+
+    return {
+      bids: transformedBids,
+      total,
+      page: validPage,
+      limit: validLimit,
+      totalPages: Math.ceil(total / validLimit),
+    };
   }
 
-  async getHighestBidForAuction(auctionId: string): Promise<BidResponseDto | null> {
+  async getHighestBidForAuction(
+    auctionId: string,
+  ): Promise<BidResponseDto | null> {
     const bid = await this.bidRepository.findOne({
       where: { auctionId },
       relations: ['auction', 'auction.item', 'bidder'],
@@ -319,20 +397,26 @@ export class BidsService {
       isAuto: bid.isAuto,
       createdAt: bid.createdAt,
       modifiedAt: bid.modifiedAt,
-      auction: bid.auction ? {
-        id: bid.auction.id,
-        status: bid.auction.status,
-        item: bid.auction.item ? {
-          id: bid.auction.item.id,
-          title: bid.auction.item.title,
-          description: bid.auction.item.description || '',
-        } : undefined,
-      } : undefined,
-      bidder: bid.bidder ? {
-        id: bid.bidder.id,
-        name: bid.bidder.name || '',
-        email: bid.bidder.email,
-      } : undefined,
+      auction: bid.auction
+        ? {
+            id: bid.auction.id,
+            status: bid.auction.status,
+            item: bid.auction.item
+              ? {
+                  id: bid.auction.item.id,
+                  title: bid.auction.item.title,
+                  description: bid.auction.item.description || '',
+                }
+              : undefined,
+          }
+        : undefined,
+      bidder: bid.bidder
+        ? {
+            id: bid.bidder.id,
+            name: bid.bidder.name || '',
+            email: bid.bidder.email,
+          }
+        : undefined,
     };
   }
 }
